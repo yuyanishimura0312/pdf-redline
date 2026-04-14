@@ -85,12 +85,10 @@ async function renderPage(num) {
     const page = await pdfDoc.getPage(num);
     // Scale to fit container width
     const container = document.getElementById('pdf-container');
-    const containerWidth = container.clientWidth - 32;
-    const containerHeight = container.clientHeight - 32;
+    const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    const scaleW = containerWidth / viewport.width;
-    const scaleH = containerHeight / viewport.height;
-    const scale = Math.min(scaleW, scaleH, 3);
+    // Fill container width — allow vertical scroll for tall pages
+    const scale = Math.min(containerWidth / viewport.width, 3);
     const scaledViewport = page.getViewport({ scale });
 
     canvas.width = scaledViewport.width;
@@ -512,12 +510,9 @@ async function renderPageDynamic(num) {
   try {
     const page = await pdfDoc.getPage(num);
     const container = document.getElementById('pdf-container');
-    const containerWidth = container.clientWidth - 32;
-    const containerHeight = container.clientHeight - 32;
+    const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    const scaleW = containerWidth / viewport.width;
-    const scaleH = containerHeight / viewport.height;
-    const scale = Math.min(scaleW, scaleH, 3);
+    const scale = Math.min(containerWidth / viewport.width, 3);
     const scaledViewport = page.getViewport({ scale });
 
     c.width = scaledViewport.width;

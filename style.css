@@ -224,7 +224,7 @@ body {
   flex: 1;
   overflow: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 12px;
   position: relative;
