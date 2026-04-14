@@ -59,7 +59,11 @@ function updateCommentCount() {
 async function loadPDF(file) {
   pdfName = file.name;
   const arrayBuffer = await file.arrayBuffer();
-  pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  pdfDoc = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+    cMapPacked: true
+  }).promise;
   totalPages = pdfDoc.numPages;
 
   document.getElementById('upload-screen').classList.remove('active');
@@ -525,7 +529,11 @@ async function checkSharedData() {
 
 async function loadPDFIntoViewer(file) {
   const arrayBuffer = await file.arrayBuffer();
-  pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  pdfDoc = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+    cMapPacked: true
+  }).promise;
   totalPages = pdfDoc.numPages;
   document.getElementById('page-jump').max = totalPages;
 
