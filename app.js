@@ -629,7 +629,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Report & New
   document.getElementById('pdf-report-btn').addEventListener('click', generatePdfReport);
-  document.getElementById('new-pdf-btn').addEventListener('click', () => {
-    if (confirm('別のPDFを読み込みますか？')) location.reload();
+  document.getElementById('home-btn').addEventListener('click', () => {
+    document.getElementById('app-screen').classList.remove('active');
+    document.getElementById('upload-screen').classList.add('active');
+    renderProjectList();
   });
 });
