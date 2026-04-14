@@ -6,6 +6,7 @@ let pdfName = '';
 let comments = [];
 let referenceText = '';
 let renderTask = null;
+let zoomLevel = 1.0; // 1.0 = fit to width
 const canvas = document.getElementById('pdf-canvas');
 const ctx = canvas.getContext('2d');
 
@@ -86,22 +87,24 @@ async function renderPage(num) {
     const container = document.getElementById('pdf-container');
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    // CSS pixel scale to fill container width
-    const cssScale = containerWidth / viewport.width;
+    // CSS pixel scale: fit to width, then apply user zoom
+    const fitScale = containerWidth / viewport.width;
+    const cssScale = fitScale * zoomLevel;
+    const displayWidth = viewport.width * cssScale;
+    const displayHeight = viewport.height * cssScale;
     // Render at higher resolution for Retina displays
     const dpr = window.devicePixelRatio || 1;
-    const renderScale = cssScale * dpr;
-    const scaledViewport = page.getViewport({ scale: renderScale });
+    const scaledViewport = page.getViewport({ scale: cssScale * dpr });
 
     canvas.width = scaledViewport.width;
     canvas.height = scaledViewport.height;
-    // Set CSS display size to fill container
-    canvas.style.width = containerWidth + 'px';
-    canvas.style.height = (containerWidth * viewport.height / viewport.width) + 'px';
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
 
     renderTask = page.render({ canvasContext: ctx, viewport: scaledViewport });
     await renderTask.promise;
     renderTask = null;
+    updateZoomDisplay();
   } catch (e) {
     if (e.name !== 'RenderingCancelledException') {
       console.error('Render error:', e);
@@ -113,6 +116,27 @@ async function renderPage(num) {
   document.getElementById('prev-btn').disabled = num <= 1;
   document.getElementById('next-btn').disabled = num >= totalPages;
   document.getElementById('page-jump').value = '';
+}
+
+// ─── Zoom ───
+function zoomIn() {
+  zoomLevel = Math.min(zoomLevel + 0.25, 4.0);
+  renderPage(currentPage);
+}
+
+function zoomOut() {
+  zoomLevel = Math.max(zoomLevel - 0.25, 0.5);
+  renderPage(currentPage);
+}
+
+function zoomFit() {
+  zoomLevel = 1.0;
+  renderPage(currentPage);
+}
+
+function updateZoomDisplay() {
+  const el = document.getElementById('zoom-display');
+  if (el) el.textContent = Math.round(zoomLevel * 100) + '%';
 }
 
 // ─── Get current page as base64 PNG ───
@@ -518,14 +542,16 @@ async function renderPageDynamic(num) {
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
     const dpr = window.devicePixelRatio || 1;
-    const cssScale = containerWidth / viewport.width;
-    const renderScale = cssScale * dpr;
-    const scaledViewport = page.getViewport({ scale: renderScale });
+    const fitScale = containerWidth / viewport.width;
+    const cssScale = fitScale * zoomLevel;
+    const displayWidth = viewport.width * cssScale;
+    const displayHeight = viewport.height * cssScale;
+    const scaledViewport = page.getViewport({ scale: cssScale * dpr });
 
     c.width = scaledViewport.width;
     c.height = scaledViewport.height;
-    c.style.width = containerWidth + 'px';
-    c.style.height = (containerWidth * viewport.height / viewport.width) + 'px';
+    c.style.width = displayWidth + 'px';
+    c.style.height = displayHeight + 'px';
 
     await page.render({ canvasContext: cx, viewport: scaledViewport }).promise;
   } catch (e) {

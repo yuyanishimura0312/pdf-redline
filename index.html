@@ -64,6 +64,11 @@
           <span id="page-info">- / -</span>
           <button class="btn btn-nav" id="next-btn" disabled>次 &gt;</button>
           <input type="number" id="page-jump" min="1" placeholder="#" title="ページ番号を入力してジャンプ">
+          <span class="nav-divider">|</span>
+          <button class="btn btn-nav" id="zoom-out-btn" onclick="zoomOut()">-</button>
+          <span id="zoom-display" class="zoom-display">100%</span>
+          <button class="btn btn-nav" id="zoom-in-btn" onclick="zoomIn()">+</button>
+          <button class="btn btn-nav" id="zoom-fit-btn" onclick="zoomFit()" title="幅に合わせる">Fit</button>
         </div>
       </div>
 

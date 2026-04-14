@@ -263,6 +263,18 @@ body {
   text-align: center;
 }
 
+.nav-divider {
+  color: var(--color-border);
+  margin: 0 2px;
+}
+
+.zoom-display {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  min-width: 40px;
+  text-align: center;
+}
+
 #page-jump {
   width: 50px;
   padding: 4px 8px;
