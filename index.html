@@ -70,7 +70,7 @@
         <span class="comment-count" id="comment-count">0 件</span>
       </div>
       <div class="header-right">
-        <button class="btn btn-icon" id="ref-toggle" title="参考情報パネルを開閉">参考情報</button>
+        <button class="btn btn-icon" id="ref-toggle" title="参考情報パネルを開閉" aria-expanded="false" aria-controls="ref-panel">参考情報</button>
         <button class="btn btn-icon" id="pdf-report-btn" title="PDFレポートを出力">レポート出力</button>
         <button class="btn btn-icon" id="new-pdf-btn" title="別のPDFを読み込む">別のPDF</button>
       </div>
@@ -96,7 +96,7 @@
         <div id="pdf-container">
           <canvas id="pdf-render-canvas" style="display:none"></canvas>
           <img id="pdf-image" alt="PDF page">
-          <div id="pdf-loading" class="hidden">読み込み中...</div>
+          <div id="pdf-loading" class="hidden"><div class="spinner"></div><span>読み込み中...</span></div>
         </div>
         <div id="pdf-nav">
           <button class="btn btn-nav" id="prev-btn" disabled>&larr;</button>
@@ -115,12 +115,12 @@
       <div id="comment-panel">
         <!-- Input -->
         <div id="comment-input-area">
-          <div class="mode-tabs">
-            <button class="tab active" data-mode="manual">赤入れ</button>
-            <button class="tab" data-mode="ai">AI補完</button>
+          <div class="mode-tabs" role="tablist" aria-label="コメント入力モード">
+            <button class="tab active" data-mode="manual" role="tab" aria-selected="true" aria-controls="manual-mode" id="tab-manual">赤入れ</button>
+            <button class="tab" data-mode="ai" role="tab" aria-selected="false" aria-controls="ai-mode" id="tab-ai">AI補完</button>
           </div>
 
-          <div id="manual-mode" class="mode-content active">
+          <div id="manual-mode" class="mode-content active" role="tabpanel" aria-labelledby="tab-manual">
             <textarea id="comment-text" placeholder="修正内容・コメントを記載..."></textarea>
             <div class="input-row">
               <label class="img-attach-btn" title="画像を添付">
@@ -135,7 +135,7 @@
             </div>
           </div>
 
-          <div id="ai-mode" class="mode-content">
+          <div id="ai-mode" class="mode-content" role="tabpanel" aria-labelledby="tab-ai">
             <textarea id="ai-instruction" placeholder="AIへの指示（例: この段落をより簡潔に書き直してください）"></textarea>
             <button class="btn btn-ai" id="ai-generate-btn">AI補完を実行</button>
             <div id="ai-result" class="hidden">

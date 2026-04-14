@@ -254,12 +254,15 @@ function addComment(label, text, mode, image) {
   });
   saveState();
   renderComments();
+  showToast('コメントを追加しました');
 }
 
 function deleteComment(id) {
+  if (!confirm('このコメントを削除しますか？')) return;
   comments = comments.filter(c => c.id !== id);
   saveState();
   renderComments();
+  showToast('コメントを削除しました');
 }
 
 function updateComment(id, updates) {
@@ -300,7 +303,7 @@ function renderComments() {
       <div class="comment-meta">
         <div style="display:flex;align-items:center;gap:4px">
           <span class="comment-mode ${c.mode}">${c.mode === 'ai' ? 'AI' : '手動'}</span>
-          <button class="comment-status" onclick="cycleStatus('${c.id}')">${statusLabels[c.status]}</button>
+          <button class="comment-status" data-status="${c.status}" onclick="cycleStatus('${c.id}')">${statusLabels[c.status]}</button>
         </div>
         <div class="comment-actions">
           <button class="btn-danger" onclick="startEdit('${c.id}')">編集</button>
@@ -329,6 +332,7 @@ function startEdit(id) {
 
 function finishEdit(id) {
   updateComment(id, { revised: document.getElementById('edit-text-' + id).value });
+  showToast('コメントを保存しました');
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -496,6 +500,18 @@ async function generatePdfReport() {
   win.document.close();
 }
 
+// ─── Toast ───
+function showToast(message, duration = 2000) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, duration);
+}
+
 // ─── Modal helpers ───
 function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el => el.remove()); }
 
@@ -516,8 +532,14 @@ document.addEventListener('DOMContentLoaded', () => {
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault(); dropZone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') loadPDF(file);
+    if (file && file.type === 'application/pdf') { loadPDF(file); }
+    else if (file) { showToast('PDFファイルのみ対応しています'); }
   });
+
+  // Escape to close modals
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  // Click overlay to close modals
+  document.addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) closeModal(); });
 
   // Navigation
   document.getElementById('prev-btn').addEventListener('click', () => {
@@ -537,12 +559,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'ArrowRight' && currentPage < totalPages) { currentPage++; renderPage(currentPage); renderComments(); }
   });
 
-  // Mode tabs
+  // Mode tabs with ARIA
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
       document.querySelectorAll('.mode-content').forEach(m => m.classList.remove('active'));
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       document.getElementById(tab.dataset.mode + '-mode').classList.add('active');
     });
   });
@@ -554,6 +577,11 @@ document.addEventListener('DOMContentLoaded', () => {
     addComment('p.' + currentPage, text, 'manual', attachedImage);
     document.getElementById('comment-text').value = '';
     removeAttachedImage();
+  });
+
+  // Cmd+Enter to submit comment
+  document.getElementById('comment-text').addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') document.getElementById('add-comment-btn').click();
   });
 
   // Image attachment
@@ -578,7 +606,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Reference panel
   document.getElementById('ref-toggle').addEventListener('click', () => {
-    document.getElementById('ref-panel').classList.toggle('hidden');
+    const panel = document.getElementById('ref-panel');
+    const btn = document.getElementById('ref-toggle');
+    panel.classList.toggle('hidden');
+    const isOpen = !panel.classList.contains('hidden');
+    btn.classList.toggle('active', isOpen);
+    btn.setAttribute('aria-expanded', isOpen);
   });
   document.getElementById('ref-text').addEventListener('input', (e) => { referenceText = e.target.value; saveState(); });
   document.getElementById('ref-file-btn').addEventListener('click', () => document.getElementById('ref-file-input').click());

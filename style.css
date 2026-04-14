@@ -232,6 +232,26 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .edit-textarea { width: 100%; min-height: 50px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: var(--font); resize: vertical; margin-top: 3px; }
 .edit-actions { display: flex; gap: 4px; margin-top: 4px; }
 
+/* ─── Toast ─── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--brand-dark); color: #fff; padding: 10px 24px; border-radius: 8px;
+  font-size: 13px; font-family: var(--font); box-shadow: var(--shadow-lg);
+  opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 200; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ─── Status colors ─── */
+.comment-status[data-status="open"] { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+.comment-status[data-status="in_progress"] { background: #e3f2fd; color: #1565c0; border-color: #90caf9; }
+.comment-status[data-status="done"] { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+
+/* ─── Ref toggle active ─── */
+#ref-toggle.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* ─── PDF loading spinner ─── */
+#pdf-loading { display: flex; align-items: center; gap: 8px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; color: var(--text2); }
+
 .hidden { display: none !important; }
 
 @media (max-width: 900px) {
