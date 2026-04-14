@@ -230,7 +230,13 @@ body {
   position: relative;
 }
 
-#pdf-canvas {
+#pdf-render-canvas {
+  display: none;
+}
+
+#pdf-image {
+  max-width: 100%;
+  height: auto;
   box-shadow: var(--shadow-md);
   background: #fff;
   display: block;

@@ -7,8 +7,9 @@ let comments = [];
 let referenceText = '';
 let renderTask = null;
 let zoomLevel = 1.0; // 1.0 = fit to width
-const canvas = document.getElementById('pdf-canvas');
-const ctx = canvas.getContext('2d');
+// Hidden canvas for rendering, img for display (fetched dynamically for shared mode)
+function getRenderCanvas() { return document.getElementById('pdf-render-canvas'); }
+function getPdfImage() { return document.getElementById('pdf-image'); }
 
 // ─── Storage key based on PDF name ───
 function storageKey() {
@@ -73,7 +74,7 @@ async function loadPDF(file) {
   updateCommentCount();
 }
 
-// ─── PDF Rendering ───
+// ─── PDF Rendering (render to hidden canvas → display as <img>) ───
 async function renderPage(num) {
   if (renderTask) {
     renderTask.cancel();
@@ -82,32 +83,40 @@ async function renderPage(num) {
 
   const loading = document.getElementById('pdf-loading');
   loading.classList.remove('hidden');
+  const pdfImage = getPdfImage();
+  const renderCanvas = getRenderCanvas();
+  const renderCtx = renderCanvas.getContext('2d');
+  pdfImage.style.opacity = '0.3';
 
   try {
     const page = await pdfDoc.getPage(num);
     const container = document.getElementById('pdf-container');
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    // CSS pixel scale: fit to width, then apply user zoom
-    const fitScale = containerWidth / viewport.width;
-    const cssScale = fitScale * zoomLevel;
-    const cssViewport = page.getViewport({ scale: cssScale });
-    const displayWidth = Math.floor(cssViewport.width);
-    const displayHeight = Math.floor(cssViewport.height);
-    // Render at higher resolution for Retina displays
+
+    // Render at 4x base resolution for crisp text on Retina displays
     const dpr = window.devicePixelRatio || 1;
+    const renderScale = Math.max(dpr, 2) * 2 * zoomLevel;
+    const renderViewport = page.getViewport({ scale: renderScale });
 
-    canvas.width = Math.floor(displayWidth * dpr);
-    canvas.height = Math.floor(displayHeight * dpr);
-    canvas.style.width = displayWidth + 'px';
-    canvas.style.height = displayHeight + 'px';
+    renderCanvas.width = renderViewport.width;
+    renderCanvas.height = renderViewport.height;
 
-    // Scale the context BEFORE rendering — critical for sharp text
-    ctx.scale(dpr, dpr);
-
-    renderTask = page.render({ canvasContext: ctx, viewport: cssViewport });
+    renderTask = page.render({ canvasContext: renderCtx, viewport: renderViewport });
     await renderTask.promise;
     renderTask = null;
+
+    // Convert to image and display
+    const dataUrl = renderCanvas.toDataURL('image/png');
+    pdfImage.src = dataUrl;
+
+    // Set display size based on zoom
+    const fitScale = containerWidth / viewport.width;
+    const displayWidth = Math.floor(viewport.width * fitScale * zoomLevel);
+    pdfImage.style.width = displayWidth + 'px';
+    pdfImage.style.height = 'auto';
+    pdfImage.style.opacity = '1';
+
     updateZoomDisplay();
   } catch (e) {
     if (e.name !== 'RenderingCancelledException') {
@@ -145,7 +154,7 @@ function updateZoomDisplay() {
 
 // ─── Get current page as base64 PNG ───
 function getPageImage() {
-  return canvas.toDataURL('image/png').split(',')[1];
+  return getRenderCanvas().toDataURL('image/png').split(',')[1];
 }
 
 // ─── Comments ───
@@ -520,55 +529,14 @@ async function loadPDFIntoViewer(file) {
   totalPages = pdfDoc.numPages;
   document.getElementById('page-jump').max = totalPages;
 
-  // Restore canvas
+  // Restore image viewer
   const container = document.getElementById('pdf-container');
-  container.innerHTML = '<canvas id="pdf-canvas"></canvas><div id="pdf-loading" class="hidden">読み込み中...</div>';
-  const newCanvas = document.getElementById('pdf-canvas');
-  // Reassign canvas refs
-  Object.defineProperty(window, '_canvas', { value: newCanvas, writable: true });
-  window._ctx = newCanvas.getContext('2d');
+  container.innerHTML = '<canvas id="pdf-render-canvas" style="display:none"></canvas><img id="pdf-image" alt="PDF page"><div id="pdf-loading" class="hidden">読み込み中...</div>';
 
   currentPage = 1;
-  renderPageDynamic(currentPage);
+  renderPage(currentPage);
   document.getElementById('comment-filter').value = 'page';
   renderComments();
-}
-
-async function renderPageDynamic(num) {
-  const c = document.getElementById('pdf-canvas');
-  const cx = c.getContext('2d');
-  const loading = document.getElementById('pdf-loading');
-  loading.classList.remove('hidden');
-
-  try {
-    const page = await pdfDoc.getPage(num);
-    const container = document.getElementById('pdf-container');
-    const containerWidth = container.clientWidth - 24;
-    const viewport = page.getViewport({ scale: 1 });
-    const dpr = window.devicePixelRatio || 1;
-    const fitScale = containerWidth / viewport.width;
-    const cssScale = fitScale * zoomLevel;
-    const cssViewport = page.getViewport({ scale: cssScale });
-    const displayWidth = Math.floor(cssViewport.width);
-    const displayHeight = Math.floor(cssViewport.height);
-
-    c.width = Math.floor(displayWidth * dpr);
-    c.height = Math.floor(displayHeight * dpr);
-    c.style.width = displayWidth + 'px';
-    c.style.height = displayHeight + 'px';
-
-    const cx2 = c.getContext('2d');
-    cx2.scale(dpr, dpr);
-
-    await page.render({ canvasContext: cx2, viewport: cssViewport }).promise;
-  } catch (e) {
-    console.error('Render error:', e);
-  }
-
-  loading.classList.add('hidden');
-  document.getElementById('page-info').textContent = num + ' / ' + totalPages;
-  document.getElementById('prev-btn').disabled = num <= 1;
-  document.getElementById('next-btn').disabled = num >= totalPages;
 }
 
 // ─── Event Listeners ───

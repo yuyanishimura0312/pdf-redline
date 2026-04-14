@@ -56,7 +56,8 @@
       <!-- PDF Viewer -->
       <div id="pdf-viewer">
         <div id="pdf-container">
-          <canvas id="pdf-canvas"></canvas>
+          <canvas id="pdf-render-canvas" style="display:none"></canvas>
+          <img id="pdf-image" alt="PDF page">
           <div id="pdf-loading" class="hidden">読み込み中...</div>
         </div>
         <div id="pdf-nav">
