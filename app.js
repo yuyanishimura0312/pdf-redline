@@ -480,6 +480,174 @@ function downloadReport() {
   closeModal();
 }
 
+// ─── PDF Report (4 pages per sheet with comments) ───
+async function generatePdfReport() {
+  if (!pdfDoc || comments.length === 0) {
+    alert('コメントがありません');
+    return;
+  }
+
+  // Show progress modal
+  closeModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h2>PDFレポート生成中...</h2>
+      <p id="pdf-progress">準備中...</p>
+      <div style="margin-top:12px;height:4px;background:var(--color-border);border-radius:2px">
+        <div id="pdf-progress-bar" style="height:100%;width:0%;background:var(--color-brand);border-radius:2px;transition:width 0.3s"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const progressEl = document.getElementById('pdf-progress');
+  const progressBar = document.getElementById('pdf-progress-bar');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 12;
+    const contentW = pageW - margin * 2;
+    const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
+
+    // Group comments by page
+    const grouped = {};
+    for (const c of comments) {
+      if (!grouped[c.page]) grouped[c.page] = [];
+      grouped[c.page].push(c);
+    }
+    const pageNumbers = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+    // Title page
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(20);
+    pdf.text('PDF Redline Report', pageW / 2, 40, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(pdfName, pageW / 2, 55, { align: 'center' });
+    pdf.text(new Date().toLocaleDateString('ja-JP') + '  ' + comments.length + ' comments', pageW / 2, 65, { align: 'center' });
+
+    // Render each commented page as thumbnail + comments, 4 per sheet
+    const slotsPerSheet = 4;
+    // Each slot: half width, quarter height (2 cols x 2 rows)
+    const slotW = (contentW - 4) / 2; // 4mm gap between columns
+    const slotH = (pageH - margin * 2 - 8) / 2; // 8mm gap between rows
+    const thumbH = slotH * 0.55; // 55% for thumbnail, 45% for comments
+    const commentAreaH = slotH - thumbH - 2;
+
+    let slotIndex = 0;
+
+    // Hidden canvas for rendering thumbnails
+    const thumbCanvas = document.createElement('canvas');
+    const thumbCtx = thumbCanvas.getContext('2d');
+
+    for (let i = 0; i < pageNumbers.length; i++) {
+      const pgNum = pageNumbers[i];
+      progressEl.textContent = 'ページ ' + pgNum + ' を処理中... (' + (i + 1) + '/' + pageNumbers.length + ')';
+      progressBar.style.width = Math.round((i / pageNumbers.length) * 100) + '%';
+
+      // New PDF page when needed
+      if (slotIndex === 0 || slotIndex >= slotsPerSheet) {
+        if (i > 0 || slotIndex >= slotsPerSheet) pdf.addPage();
+        slotIndex = 0;
+      }
+
+      // Calculate slot position
+      const col = slotIndex % 2;
+      const row = Math.floor(slotIndex / 2);
+      const slotX = margin + col * (slotW + 4);
+      const slotY = margin + row * (slotH + 4);
+
+      // Render page thumbnail
+      try {
+        const page = await pdfDoc.getPage(pgNum);
+        const vp = page.getViewport({ scale: 1 });
+        const scale = Math.min((slotW * 3) / vp.width, (thumbH * 3) / vp.height);
+        const scaledVp = page.getViewport({ scale });
+
+        thumbCanvas.width = scaledVp.width;
+        thumbCanvas.height = scaledVp.height;
+        thumbCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+        await page.render({ canvasContext: thumbCtx, viewport: scaledVp }).promise;
+
+        const imgData = thumbCanvas.toDataURL('image/jpeg', 0.85);
+        const imgW = slotW;
+        const imgH = (scaledVp.height / scaledVp.width) * imgW;
+        const finalImgH = Math.min(imgH, thumbH);
+        const finalImgW = (finalImgH / imgH) * imgW;
+
+        // Draw border
+        pdf.setDrawColor(200);
+        pdf.setLineWidth(0.3);
+        pdf.rect(slotX, slotY, slotW, slotH);
+
+        // Draw thumbnail
+        pdf.addImage(imgData, 'JPEG', slotX + (slotW - finalImgW) / 2, slotY + 1, finalImgW, finalImgH);
+
+        // Page number label
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(120, 60, 40);
+        pdf.text('p.' + pgNum, slotX + 2, slotY + thumbH + 5);
+        pdf.setTextColor(0);
+      } catch (e) {
+        console.warn('Failed to render page', pgNum, e);
+      }
+
+      // Draw comments below thumbnail
+      const cmts = grouped[pgNum];
+      let commentY = slotY + thumbH + 8;
+      pdf.setFontSize(6);
+      pdf.setFont('helvetica', 'normal');
+
+      for (const c of cmts) {
+        if (commentY > slotY + slotH - 3) break; // overflow guard
+
+        // Label
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6.5);
+        const labelText = c.label || 'Comment';
+        const statusText = ' [' + (statusLabels[c.status] || c.status) + ']';
+        pdf.text(labelText.substring(0, 40) + statusText, slotX + 2, commentY, { maxWidth: slotW - 4 });
+        commentY += 3;
+
+        // Body text
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(5.5);
+        const lines = pdf.splitTextToSize(c.revised || '', slotW - 4);
+        const maxLines = Math.floor((slotY + slotH - commentY - 2) / 2.5);
+        const displayLines = lines.slice(0, Math.min(lines.length, maxLines));
+        for (const line of displayLines) {
+          pdf.text(line, slotX + 2, commentY);
+          commentY += 2.5;
+        }
+        if (lines.length > maxLines) {
+          pdf.text('...', slotX + 2, commentY);
+          commentY += 2.5;
+        }
+        commentY += 1.5;
+      }
+
+      slotIndex++;
+    }
+
+    progressBar.style.width = '100%';
+    progressEl.textContent = '完了';
+
+    // Save
+    pdf.save(pdfName.replace('.pdf', '') + '_redline_report.pdf');
+    closeModal();
+  } catch (e) {
+    console.error('PDF report error:', e);
+    alert('PDFレポート生成エラー: ' + e.message);
+    closeModal();
+  }
+}
+
 // ─── Load shared data from URL ───
 async function checkSharedData() {
   const path = window.location.pathname;
@@ -669,6 +837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Report
   document.getElementById('report-btn').addEventListener('click', generateReport);
+  document.getElementById('pdf-report-btn').addEventListener('click', generatePdfReport);
 
   // Import
   document.getElementById('import-btn').addEventListener('click', () => {

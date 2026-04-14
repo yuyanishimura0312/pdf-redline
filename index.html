@@ -34,6 +34,7 @@
         <button class="btn btn-icon" id="ref-toggle" title="参考情報">Ref</button>
         <button class="btn btn-icon" id="export-btn" title="エクスポート">Export</button>
         <button class="btn btn-icon" id="report-btn" title="レポート出力">Report</button>
+        <button class="btn btn-icon" id="pdf-report-btn" title="PDFレポート" style="color:var(--color-brand);font-weight:600">PDF</button>
         <button class="btn btn-icon" id="new-pdf-btn" title="別のPDF">New</button>
       </div>
     </header>
@@ -123,6 +124,7 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
