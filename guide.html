@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Redline - 使い方ガイド</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23111'/><text x='50%25' y='55%25' text-anchor='middle' dominant-baseline='central' fill='white' font-size='20' font-family='Georgia'>e</text></svg>">
+  <style>
+    :root {
+      --brand: #783c28;
+      --brand-dark: #4a2418;
+      --bg: #faf8f5;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --text2: #5c534b;
+      --text3: #9a918a;
+      --border: #e8e2da;
+      --font: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+      --serif: "Noto Serif JP", "Hiragino Mincho ProN", serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; }
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+    .back-link { display: inline-block; margin-bottom: 24px; color: var(--brand); text-decoration: none; font-size: 13px; }
+    .back-link:hover { text-decoration: underline; }
+    h1 { font-family: var(--serif); font-size: 28px; color: var(--brand); font-weight: 500; margin-bottom: 8px; }
+    .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 40px; }
+    h2 { font-size: 18px; color: var(--brand); margin-top: 40px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    h3 { font-size: 15px; color: var(--text); margin-top: 20px; margin-bottom: 8px; }
+    p { font-size: 14px; color: var(--text); margin-bottom: 12px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; padding: 16px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); }
+    .step-num { width: 32px; height: 32px; min-width: 32px; background: var(--brand); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+    .step-content strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    .step-content p { font-size: 13px; color: var(--text2); margin-bottom: 0; }
+    .tip { padding: 12px 16px; background: #f3efe9; border-radius: 8px; border-left: 3px solid var(--brand); margin: 16px 0; font-size: 13px; color: var(--text2); }
+    .tip strong { color: var(--text); }
+    .shortcut { display: inline-block; padding: 2px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: monospace; color: var(--text2); }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-weight: 600; color: var(--text2); font-size: 12px; }
+    .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; color: var(--text3); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">&larr; PDF Redline に戻る</a>
+
+    <h1>使い方ガイド</h1>
+    <p class="subtitle">PDFに赤入れして、差し替え案を作成するためのツールです。</p>
+
+    <h2>基本の流れ</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>PDFを読み込む</strong>
+        <p>トップページでPDFファイルをドラッグ&ドロップするか、「ファイルを選択」ボタンからアップロードします。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>ページを確認する</strong>
+        <p>左右の矢印ボタンまたはキーボードの矢印キーでページを移動します。ズーム（+/-）で拡大・縮小できます。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>赤入れする</strong>
+        <p>右パネルの「赤入れ」タブでコメントを入力し「追加」ボタンを押します。画像の添付も可能です。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>レポートを出力する</strong>
+        <p>ヘッダーの「レポート出力」ボタンで、ページ画像+コメント一覧のPDFレポートを生成できます。</p>
+      </div>
+    </div>
+
+    <h2>コメント機能</h2>
+
+    <h3>コメントの追加</h3>
+    <p>右パネルの「赤入れ」タブでテキストを入力して「追加」ボタンを押します。画像アイコンをクリックすると、スクリーンショットなどの画像も添付できます。</p>
+
+    <div class="tip">
+      <strong>ショートカット:</strong> テキスト入力中に <span class="shortcut">Cmd + Enter</span> でコメントを追加できます。
+    </div>
+
+    <h3>コメントの管理</h3>
+    <table>
+      <tr><th>操作</th><th>説明</th></tr>
+      <tr><td>ステータス切替</td><td>「未対応」「対応中」「完了」をクリックで順番に切り替えます</td></tr>
+      <tr><td>編集</td><td>「編集」をクリックしてテキストを修正、「保存」で確定</td></tr>
+      <tr><td>削除</td><td>「削除」をクリック（確認ダイアログが表示されます）</td></tr>
+      <tr><td>ページ表示</td><td>コメント右上の「p.X」をクリックするとそのページにジャンプ</td></tr>
+    </table>
+
+    <h3>表示フィルタ</h3>
+    <p>コメント一覧の右上のプルダウンで「このページ」と「全ページ」を切り替えられます。</p>
+
+    <h2>AI補完</h2>
+    <p>右パネルの「AI補完」タブに切り替えて、AIへの指示を入力します。現在表示中のページ画像をAIが読み取り、指示に基づいて修正テキストを提案します。</p>
+
+    <h3>参考情報の活用</h3>
+    <p>ヘッダーの「参考情報」ボタンでパネルを開き、AIに読み込ませたいテキストを入力できます。テキストファイル（.txt, .md）のアップロードにも対応しています。この情報はAIが修正案を生成する際のコンテキストとして使用されます。</p>
+
+    <h2>ユーザー名</h2>
+    <p>トップページの右上にある名前入力欄に名前を入力すると、コメントに自分の名前が表示されます。チームで共有する際に誰のコメントかが一目でわかります。</p>
+
+    <h2>案件管理</h2>
+    <p>コメントはブラウザに自動保存されます。トップページの「保存済みの案件」から過去の作業を再開できます。案件を開いた後、同じPDFを再度読み込むとページ画像が表示されます。</p>
+
+    <div class="tip">
+      <strong>注意:</strong> データはブラウザのローカルストレージに保存されます。ブラウザのデータを消去すると履歴も消えます。重要な赤入れは「レポート出力」でPDFとして保存しておくことをお勧めします。
+    </div>
+
+    <h2>レポート出力</h2>
+    <p>ヘッダーの「レポート出力」ボタンをクリックすると、コメントがあるページの画像とコメントをまとめたレポートが新しいウィンドウで開きます。「PDFとして保存」ボタンでブラウザの印刷機能からPDFとして保存できます。</p>
+
+    <h2>キーボードショートカット</h2>
+    <table>
+      <tr><th>キー</th><th>操作</th></tr>
+      <tr><td><span class="shortcut">&larr;</span> <span class="shortcut">&rarr;</span></td><td>ページ送り（前/次）</td></tr>
+      <tr><td><span class="shortcut">Cmd + Enter</span></td><td>コメントを追加</td></tr>
+      <tr><td><span class="shortcut">Esc</span></td><td>モーダルを閉じる</td></tr>
+    </table>
+
+    <div class="footer">
+      PDF Redline | Miratuku
+    </div>
+  </div>
+</body>
+</html>

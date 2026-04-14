@@ -11,6 +11,13 @@
   <!-- ─── Landing Screen ─── -->
   <div id="upload-screen" class="screen active">
     <div class="landing">
+      <div class="landing-top-bar">
+        <div class="user-name-area">
+          <label for="user-name-input">名前:</label>
+          <input type="text" id="user-name-input" placeholder="あなたの名前" class="user-name-field">
+        </div>
+        <a href="/guide.html" class="guide-link">使い方ガイド</a>
+      </div>
       <div class="landing-hero">
         <h1>PDF Redline</h1>
         <p class="landing-sub">PDFに赤入れして、差し替え案を作成するツール</p>
@@ -72,6 +79,7 @@
       <div class="header-right">
         <button class="btn btn-icon" id="ref-toggle" title="参考情報パネルを開閉" aria-expanded="false" aria-controls="ref-panel">参考情報</button>
         <button class="btn btn-icon" id="pdf-report-btn" title="PDFレポートを出力">レポート出力</button>
+        <a href="/guide.html" class="btn btn-icon" title="使い方ガイド">ガイド</a>
         <button class="btn btn-icon" id="home-btn" title="トップに戻る">トップ</button>
       </div>
     </header>
@@ -159,6 +167,7 @@
             <select id="comment-filter">
               <option value="page">このページ</option>
               <option value="all">全ページ</option>
+              <option value="mine">自分のコメント</option>
             </select>
           </div>
           <div id="comment-list"></div>

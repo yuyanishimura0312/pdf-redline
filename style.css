@@ -52,6 +52,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 #upload-screen { height: 100vh; align-items: center; justify-content: center; }
 .landing { max-width: 680px; width: 100%; padding: 0 24px; }
 .landing-hero { text-align: center; margin-bottom: 40px; }
+/* Landing top bar */
+.landing-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.user-name-area { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+.user-name-field { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: var(--font); width: 140px; }
+.user-name-field:focus { outline: none; border-color: var(--accent); }
+.guide-link { font-size: 13px; color: var(--brand); text-decoration: none; }
+.guide-link:hover { text-decoration: underline; }
+
+/* Comment user badge */
+.comment-user { font-size: 10px; color: var(--text3); margin-left: 6px; }
+
 .landing-hero h1 { font-family: var(--serif); font-size: 32px; color: var(--brand); font-weight: 500; margin-bottom: 8px; }
 .landing-sub { color: var(--text2); font-size: 15px; margin-bottom: 32px; }
 

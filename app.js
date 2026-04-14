@@ -7,7 +7,8 @@ let comments = [];
 let referenceText = '';
 let renderTask = null;
 let zoomLevel = 1.0;
-let attachedImage = null; // base64 data URL for attached image
+let attachedImage = null;
+let userName = '';
 
 function getRenderCanvas() { return document.getElementById('pdf-render-canvas'); }
 function getPdfImage() { return document.getElementById('pdf-image'); }
@@ -248,6 +249,7 @@ function addComment(label, text, mode, image) {
     revised: text,
     mode: mode,
     image: image || null,
+    user: userName || '',
     status: 'open',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -283,9 +285,10 @@ function cycleStatus(id) {
 function renderComments() {
   const list = document.getElementById('comment-list');
   const filter = document.getElementById('comment-filter').value;
-  const filtered = filter === 'page'
-    ? comments.filter(c => c.page === currentPage)
-    : [...comments].sort((a, b) => a.page - b.page);
+  let filtered;
+  if (filter === 'page') filtered = comments.filter(c => c.page === currentPage);
+  else if (filter === 'mine') filtered = [...comments].filter(c => c.user === userName).sort((a, b) => a.page - b.page);
+  else filtered = [...comments].sort((a, b) => a.page - b.page);
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty-state">コメントなし</div>';
@@ -296,7 +299,7 @@ function renderComments() {
   list.innerHTML = filtered.map(c => `
     <div class="comment-card ${c.status === 'done' ? 'status-done' : ''}" data-id="${c.id}">
       <div class="comment-card-header">
-        <span class="comment-page" onclick="goToPage(${c.page})">p.${c.page}</span>
+        <span><span class="comment-page" onclick="goToPage(${c.page})">p.${c.page}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
       </div>
       <div class="comment-body">${esc(c.revised)}</div>
       ${c.image ? '<div class="comment-image"><img src="' + c.image + '" alt="添付"></div>' : ''}
@@ -517,6 +520,15 @@ function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el =
 
 // ─── Event Listeners ───
 document.addEventListener('DOMContentLoaded', () => {
+  // Load user name
+  userName = localStorage.getItem('pdfredline_username') || '';
+  const userInput = document.getElementById('user-name-input');
+  userInput.value = userName;
+  userInput.addEventListener('input', (e) => {
+    userName = e.target.value.trim();
+    localStorage.setItem('pdfredline_username', userName);
+  });
+
   // Show saved projects on landing
   renderProjectList();
 
