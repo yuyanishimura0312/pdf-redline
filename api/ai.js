@@ -16,6 +16,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'instruction is required' });
     }
 
+    // Input size limits
+    if (instruction.length > 5000) {
+      return res.status(400).json({ error: 'instruction is too long (max 5000 chars)' });
+    }
+    if (pageImage && pageImage.length > 5000000) {
+      return res.status(400).json({ error: 'Page image is too large. Try zooming out.' });
+    }
+
     // Build messages with vision
     const content = [];
 

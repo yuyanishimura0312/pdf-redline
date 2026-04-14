@@ -21,11 +21,14 @@ function saveState() {
   const data = { pdfName, referenceText, comments, updatedAt: new Date().toISOString() };
   try {
     localStorage.setItem(storageKey(), JSON.stringify(data));
-    // Update project index
     const index = getProjectIndex();
     index[storageKey()] = { pdfName, commentCount: comments.length, updatedAt: data.updatedAt };
     localStorage.setItem('pdfredline_index', JSON.stringify(index));
-  } catch (e) {}
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      showToast('ストレージ容量が不足しています。レポート出力でデータを保存してください。', 5000);
+    }
+  }
   updateCommentCount();
 }
 
@@ -51,15 +54,27 @@ function renderProjectList() {
     const p = index[key];
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ja-JP') : '';
     return `
-      <div class="project-item" onclick="openProject('${key}')">
+      <div class="project-item" data-key="${esc(key)}">
         <div>
           <div class="project-name">${esc(p.pdfName)}</div>
           <div class="project-meta">${p.commentCount} 件のコメント | ${date}</div>
         </div>
-        <button class="project-delete" onclick="event.stopPropagation(); deleteProject('${key}')" title="削除">&times;</button>
+        <button class="project-delete" data-action="delete-project" title="削除">&times;</button>
       </div>
     `;
   }).join('');
+
+  // Event delegation for project list
+  list.querySelectorAll('.project-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.dataset.action === 'delete-project') {
+        e.stopPropagation();
+        deleteProject(el.dataset.key);
+      } else {
+        openProject(el.dataset.key);
+      }
+    });
+  });
 }
 
 function openProject(key) {
@@ -147,12 +162,23 @@ function updateCommentCount() {
 // ─── PDF Loading ───
 async function loadPDF(file) {
   pdfName = file.name;
-  const arrayBuffer = await file.arrayBuffer();
-  pdfDoc = await pdfjsLib.getDocument({
-    data: arrayBuffer,
-    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-    cMapPacked: true
-  }).promise;
+  let arrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch (e) {
+    showToast('ファイルの読み込みに失敗しました');
+    return;
+  }
+  try {
+    pdfDoc = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true
+    }).promise;
+  } catch (e) {
+    showToast('PDFの解析に失敗しました。正しいPDFファイルか確認してください。', 4000);
+    return;
+  }
   totalPages = pdfDoc.numPages;
 
   document.getElementById('upload-screen').classList.remove('active');
@@ -214,9 +240,9 @@ async function renderPage(num) {
 function getPageImage() { return getRenderCanvas().toDataURL('image/png').split(',')[1]; }
 
 // ─── Zoom ───
-function zoomIn() { zoomLevel = Math.min(zoomLevel + 0.25, 4.0); renderPage(currentPage); }
-function zoomOut() { zoomLevel = Math.max(zoomLevel - 0.25, 0.5); renderPage(currentPage); }
-function zoomFit() { zoomLevel = 1.0; renderPage(currentPage); }
+function zoomIn() { if (!pdfDoc) return; zoomLevel = Math.min(zoomLevel + 0.25, 4.0); renderPage(currentPage); }
+function zoomOut() { if (!pdfDoc) return; zoomLevel = Math.max(zoomLevel - 0.25, 0.5); renderPage(currentPage); }
+function zoomFit() { if (!pdfDoc) return; zoomLevel = 1.0; renderPage(currentPage); }
 function updateZoomDisplay() {
   const el = document.getElementById('zoom-display');
   if (el) el.textContent = Math.round(zoomLevel * 100) + '%';
@@ -297,24 +323,37 @@ function renderComments() {
 
   const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
   list.innerHTML = filtered.map(c => `
-    <div class="comment-card ${c.status === 'done' ? 'status-done' : ''}" data-id="${c.id}">
+    <div class="comment-card ${c.status === 'done' ? 'status-done' : ''}" data-id="${esc(c.id)}">
       <div class="comment-card-header">
-        <span><span class="comment-page" onclick="goToPage(${c.page})">p.${c.page}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
+        <span><span class="comment-page" data-action="goto" data-page="${c.page}">p.${c.page}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
       </div>
       <div class="comment-body">${esc(c.revised)}</div>
       ${c.image ? '<div class="comment-image"><img src="' + c.image + '" alt="添付"></div>' : ''}
       <div class="comment-meta">
         <div style="display:flex;align-items:center;gap:4px">
           <span class="comment-mode ${c.mode}">${c.mode === 'ai' ? 'AI' : '手動'}</span>
-          <button class="comment-status" data-status="${c.status}" onclick="cycleStatus('${c.id}')">${statusLabels[c.status]}</button>
+          <button class="comment-status" data-status="${c.status}" data-action="status">${statusLabels[c.status]}</button>
         </div>
         <div class="comment-actions">
-          <button class="btn-danger" onclick="startEdit('${c.id}')">編集</button>
-          <button class="btn-danger" onclick="deleteComment('${c.id}')">削除</button>
+          <button class="btn-danger" data-action="edit">編集</button>
+          <button class="btn-danger" data-action="delete">削除</button>
         </div>
       </div>
     </div>
   `).join('');
+
+  // Event delegation for comment actions
+  list.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const card = e.target.closest('.comment-card');
+      const id = card ? card.dataset.id : null;
+      const action = e.target.dataset.action;
+      if (action === 'goto') goToPage(parseInt(e.target.dataset.page));
+      else if (action === 'status' && id) cycleStatus(id);
+      else if (action === 'edit' && id) startEdit(id);
+      else if (action === 'delete' && id) deleteComment(id);
+    });
+  });
 }
 
 function startEdit(id) {
