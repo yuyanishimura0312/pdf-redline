@@ -8,48 +8,80 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Upload Screen -->
+  <!-- ─── Landing Screen ─── -->
   <div id="upload-screen" class="screen active">
-    <div class="upload-area" id="drop-zone">
-      <h1>PDF Redline</h1>
-      <p>PDFファイルをドラッグ&ドロップ、またはクリックして選択</p>
-      <input type="file" id="file-input" accept=".pdf" hidden>
-      <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">ファイルを選択</button>
-      <div class="upload-sub">
-        <button class="btn btn-secondary" id="import-btn">JSONインポート</button>
-        <input type="file" id="import-input" accept=".json" hidden>
+    <div class="landing">
+      <div class="landing-hero">
+        <h1>PDF Redline</h1>
+        <p class="landing-sub">PDFに赤入れして、差し替え案を作成するツール</p>
+        <div class="landing-upload" id="drop-zone">
+          <div class="upload-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#783c28" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9,15 12,12 15,15"/></svg>
+          </div>
+          <p>PDFをドラッグ&ドロップ</p>
+          <span class="upload-or">または</span>
+          <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">ファイルを選択</button>
+          <input type="file" id="file-input" accept=".pdf" hidden>
+        </div>
+      </div>
+      <div class="landing-features">
+        <div class="feature-card">
+          <div class="feature-num">1</div>
+          <div>
+            <strong>PDFを読み込む</strong>
+            <p>ページ単位で表示。ズームで細部も確認。</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">2</div>
+          <div>
+            <strong>赤入れする</strong>
+            <p>各ページにコメントを記載。画像の添付も可能。</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">3</div>
+          <div>
+            <strong>AIで差し替え案を生成</strong>
+            <p>参考情報を読み込ませてAIが修正テキストを提案。</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-num">4</div>
+          <div>
+            <strong>レポートをPDF出力</strong>
+            <p>ページ画像+コメントの一覧をPDFでダウンロード。</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Main App Screen -->
+  <!-- ─── Main App ─── -->
   <div id="app-screen" class="screen">
-    <!-- Header -->
     <header id="app-header">
       <div class="header-left">
         <span class="pdf-name" id="pdf-name-display"></span>
-        <span class="comment-count" id="comment-count">0 件のコメント</span>
+        <span class="comment-count" id="comment-count">0 件</span>
       </div>
       <div class="header-right">
-        <button class="btn btn-icon" id="ref-toggle" title="参考情報">Ref</button>
-        <button class="btn btn-icon" id="export-btn" title="エクスポート">Export</button>
-        <button class="btn btn-icon" id="report-btn" title="レポート出力">Report</button>
-        <button class="btn btn-icon" id="pdf-report-btn" title="PDFレポート" style="color:var(--color-brand);font-weight:600">PDF</button>
-        <button class="btn btn-icon" id="new-pdf-btn" title="別のPDF">New</button>
+        <button class="btn btn-icon" id="ref-toggle" title="参考情報パネルを開閉">参考情報</button>
+        <button class="btn btn-icon" id="pdf-report-btn" title="PDFレポートを出力">レポート出力</button>
+        <button class="btn btn-icon" id="new-pdf-btn" title="別のPDFを読み込む">別のPDF</button>
       </div>
     </header>
 
-    <!-- Reference Panel (collapsible) -->
+    <!-- Reference Panel -->
     <div id="ref-panel" class="ref-panel hidden">
       <div class="ref-header">
-        <span>参考情報（AI補完に使用）</span>
+        <span>参考情報（AIに読み込ませるテキスト）</span>
         <div>
           <button class="btn btn-small" id="ref-file-btn">ファイル読込</button>
           <input type="file" id="ref-file-input" accept=".txt,.md,.csv" hidden>
           <button class="btn btn-small" id="ref-clear-btn">クリア</button>
         </div>
       </div>
-      <textarea id="ref-text" placeholder="参考情報をここに貼り付け、またはファイルを読み込んでください..."></textarea>
+      <textarea id="ref-text" placeholder="ここに参考情報を貼り付けるか、ファイルを読み込んでください。AIがこの情報を使って差し替え案を生成します。"></textarea>
     </div>
 
     <!-- Main Content -->
@@ -62,42 +94,51 @@
           <div id="pdf-loading" class="hidden">読み込み中...</div>
         </div>
         <div id="pdf-nav">
-          <button class="btn btn-nav" id="prev-btn" disabled>&lt; 前</button>
+          <button class="btn btn-nav" id="prev-btn" disabled>&larr;</button>
           <span id="page-info">- / -</span>
-          <button class="btn btn-nav" id="next-btn" disabled>次 &gt;</button>
-          <input type="number" id="page-jump" min="1" placeholder="#" title="ページ番号を入力してジャンプ">
-          <span class="nav-divider">|</span>
-          <button class="btn btn-nav" id="zoom-out-btn" onclick="zoomOut()">-</button>
+          <button class="btn btn-nav" id="next-btn" disabled>&rarr;</button>
+          <input type="number" id="page-jump" min="1" placeholder="#" title="ページ番号">
+          <span class="nav-sep">|</span>
+          <button class="btn btn-nav" onclick="zoomOut()">-</button>
           <span id="zoom-display" class="zoom-display">100%</span>
-          <button class="btn btn-nav" id="zoom-in-btn" onclick="zoomIn()">+</button>
-          <button class="btn btn-nav" id="zoom-fit-btn" onclick="zoomFit()" title="幅に合わせる">Fit</button>
+          <button class="btn btn-nav" onclick="zoomIn()">+</button>
+          <button class="btn btn-nav btn-fit" onclick="zoomFit()">Fit</button>
         </div>
       </div>
 
       <!-- Comment Panel -->
       <div id="comment-panel">
+        <!-- Input -->
         <div id="comment-input-area">
           <div class="mode-tabs">
-            <button class="tab active" data-mode="manual">直接記載</button>
+            <button class="tab active" data-mode="manual">赤入れ</button>
             <button class="tab" data-mode="ai">AI補完</button>
           </div>
 
-          <!-- Manual Mode -->
           <div id="manual-mode" class="mode-content active">
-            <input type="text" id="comment-label" placeholder="見出し（例: 第2章 冒頭の修正）">
-            <textarea id="comment-text" placeholder="修正内容を記載..."></textarea>
-            <button class="btn btn-primary" id="add-comment-btn">コメント追加</button>
+            <input type="text" id="comment-label" placeholder="見出し">
+            <textarea id="comment-text" placeholder="修正内容・コメントを記載..."></textarea>
+            <div class="input-row">
+              <label class="img-attach-btn" title="画像を添付">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+                <input type="file" id="comment-image-input" accept="image/*" hidden>
+              </label>
+              <button class="btn btn-primary" id="add-comment-btn">追加</button>
+            </div>
+            <div id="image-preview" class="hidden">
+              <img id="image-preview-img" alt="添付画像">
+              <button class="btn-remove-img" onclick="removeAttachedImage()">&times;</button>
+            </div>
           </div>
 
-          <!-- AI Mode -->
           <div id="ai-mode" class="mode-content">
             <textarea id="ai-instruction" placeholder="AIへの指示（例: この段落をより簡潔に書き直してください）"></textarea>
             <button class="btn btn-ai" id="ai-generate-btn">AI補完を実行</button>
             <div id="ai-result" class="hidden">
-              <div class="ai-result-header">AI生成結果:</div>
-              <textarea id="ai-result-text" placeholder="AIの生成結果がここに表示されます"></textarea>
+              <div class="ai-result-header">AI生成結果</div>
+              <textarea id="ai-result-text"></textarea>
               <div class="ai-actions">
-                <button class="btn btn-primary" id="ai-accept-btn">コメントとして保存</button>
+                <button class="btn btn-primary" id="ai-accept-btn">保存</button>
                 <button class="btn btn-secondary" id="ai-retry-btn">再生成</button>
               </div>
             </div>
@@ -111,7 +152,6 @@
         <!-- Comment List -->
         <div id="comment-list-area">
           <div class="comment-list-header">
-            <span>このページのコメント</span>
             <select id="comment-filter">
               <option value="page">このページ</option>
               <option value="all">全ページ</option>
