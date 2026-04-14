@@ -12,10 +12,7 @@
   <div id="upload-screen" class="screen active">
     <div class="landing">
       <div class="landing-top-bar">
-        <div class="user-name-area">
-          <label for="user-name-input">名前:</label>
-          <input type="text" id="user-name-input" placeholder="あなたの名前" class="user-name-field">
-        </div>
+        <div></div>
         <a href="/guide.html" class="guide-link">使い方ガイド</a>
       </div>
       <div class="landing-hero">
@@ -124,11 +121,14 @@
         <!-- Input -->
         <div id="comment-input-area">
           <div class="mode-tabs" role="tablist" aria-label="コメント入力モード">
-            <button class="tab active" data-mode="manual" role="tab" aria-selected="true" aria-controls="manual-mode" id="tab-manual">赤入れ</button>
-            <button class="tab" data-mode="ai" role="tab" aria-selected="false" aria-controls="ai-mode" id="tab-ai">AI補完</button>
+            <button class="tab active" data-mode="manual" role="tab" aria-selected="true">赤入れ</button>
+            <button class="tab" data-mode="designer" role="tab" aria-selected="false">デザイナー</button>
+            <button class="tab" data-mode="editor" role="tab" aria-selected="false">編集者</button>
+            <button class="tab" data-mode="ai" role="tab" aria-selected="false">AI補完</button>
           </div>
 
-          <div id="manual-mode" class="mode-content active" role="tabpanel" aria-labelledby="tab-manual">
+          <!-- Manual -->
+          <div id="manual-mode" class="mode-content active">
             <textarea id="comment-text" placeholder="修正内容・コメントを記載..."></textarea>
             <div class="input-row">
               <label class="img-attach-btn" title="画像を添付">
@@ -143,8 +143,47 @@
             </div>
           </div>
 
-          <div id="ai-mode" class="mode-content" role="tabpanel" aria-labelledby="tab-ai">
-            <textarea id="ai-instruction" placeholder="AIへの指示（例: この段落をより簡潔に書き直してください）"></textarea>
+          <!-- Designer Agent -->
+          <div id="designer-mode" class="mode-content">
+            <div class="agent-desc">
+              <strong>デザイナーエージェント</strong>
+              <p>このページのレイアウト・タイポグラフィ・色彩・視覚的階層をプロの視点で分析し、具体的な改善案を提示します。</p>
+            </div>
+            <textarea id="designer-context" placeholder="特に気になる点や改善の方向性があれば記載（任意）"></textarea>
+            <button class="btn btn-agent btn-designer" id="designer-run-btn">デザインレビューを実行</button>
+            <div id="designer-result" class="hidden">
+              <div class="agent-result-header designer-color">デザイナーの指摘</div>
+              <textarea id="designer-result-text"></textarea>
+              <div class="ai-actions">
+                <button class="btn btn-primary" id="designer-accept-btn">コメントとして保存</button>
+                <button class="btn btn-secondary" id="designer-retry-btn">再分析</button>
+              </div>
+            </div>
+            <div id="designer-loading" class="hidden"><div class="spinner"></div><span>デザイン分析中...</span></div>
+          </div>
+
+          <!-- Editor Agent -->
+          <div id="editor-mode" class="mode-content">
+            <div class="agent-desc">
+              <strong>編集者エージェント</strong>
+              <p>このページの文章を校正・推敲し、表現の改善案、事実関係の確認ポイント、構成の提案を行います。</p>
+            </div>
+            <textarea id="editor-context" placeholder="編集方針や読者層など補足があれば記載（任意）"></textarea>
+            <button class="btn btn-agent btn-editor" id="editor-run-btn">編集レビューを実行</button>
+            <div id="editor-result" class="hidden">
+              <div class="agent-result-header editor-color">編集者の指摘</div>
+              <textarea id="editor-result-text"></textarea>
+              <div class="ai-actions">
+                <button class="btn btn-primary" id="editor-accept-btn">コメントとして保存</button>
+                <button class="btn btn-secondary" id="editor-retry-btn">再分析</button>
+              </div>
+            </div>
+            <div id="editor-loading" class="hidden"><div class="spinner"></div><span>編集分析中...</span></div>
+          </div>
+
+          <!-- Free AI -->
+          <div id="ai-mode" class="mode-content">
+            <textarea id="ai-instruction" placeholder="AIへの自由な指示（例: この段落をより簡潔に書き直してください）"></textarea>
             <button class="btn btn-ai" id="ai-generate-btn">AI補完を実行</button>
             <div id="ai-result" class="hidden">
               <div class="ai-result-header">AI生成結果</div>
@@ -167,7 +206,6 @@
             <select id="comment-filter">
               <option value="page">このページ</option>
               <option value="all">全ページ</option>
-              <option value="mine">自分のコメント</option>
             </select>
           </div>
           <div id="comment-list"></div>

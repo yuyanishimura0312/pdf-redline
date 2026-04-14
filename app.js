@@ -8,7 +8,6 @@ let referenceText = '';
 let renderTask = null;
 let zoomLevel = 1.0;
 let attachedImage = null;
-let userName = '';
 
 function getRenderCanvas() { return document.getElementById('pdf-render-canvas'); }
 function getPdfImage() { return document.getElementById('pdf-image'); }
@@ -276,7 +275,6 @@ function addComment(label, text, mode, image) {
     revised: text,
     mode: mode,
     image: image || null,
-    user: userName || '',
     status: 'open',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -314,7 +312,6 @@ function renderComments() {
   const filter = document.getElementById('comment-filter').value;
   let filtered;
   if (filter === 'page') filtered = comments.filter(c => c.page === currentPage);
-  else if (filter === 'mine') filtered = [...comments].filter(c => c.user === userName).sort((a, b) => a.page - b.page);
   else filtered = [...comments].sort((a, b) => a.page - b.page);
 
   if (filtered.length === 0) {
@@ -323,20 +320,22 @@ function renderComments() {
   }
 
   const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
-  const safeMode = (m) => m === 'ai' ? 'ai' : 'manual';
+  const validModes = ['manual', 'ai', 'designer', 'editor'];
+  const safeMode = (m) => validModes.includes(m) ? m : 'manual';
+  const modeLabels = { manual: '手動', ai: 'AI', designer: 'デザイナー', editor: '編集者' };
   const safeStatus = (s) => ['open', 'in_progress', 'done'].includes(s) ? s : 'open';
   const safeImage = (img) => img && typeof img === 'string' && img.startsWith('data:image/') ? img : '';
 
   list.innerHTML = filtered.map(c => `
     <div class="comment-card ${safeStatus(c.status) === 'done' ? 'status-done' : ''}" data-id="${esc(c.id)}">
       <div class="comment-card-header">
-        <span><span class="comment-page" data-action="goto" data-page="${parseInt(c.page) || 0}">p.${parseInt(c.page) || '?'}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
+        <span><span class="comment-page" data-action="goto" data-page="${parseInt(c.page) || 0}">p.${parseInt(c.page) || '?'}</span></span>
       </div>
       <div class="comment-body">${esc(c.revised)}</div>
       ${safeImage(c.image) ? '<div class="comment-image"><img src="' + safeImage(c.image) + '" alt="添付"></div>' : ''}
       <div class="comment-meta">
         <div style="display:flex;align-items:center;gap:4px">
-          <span class="comment-mode ${safeMode(c.mode)}">${safeMode(c.mode) === 'ai' ? 'AI' : '手動'}</span>
+          <span class="comment-mode ${safeMode(c.mode)}">${modeLabels[safeMode(c.mode)]}</span>
           <button class="comment-status" data-status="${safeStatus(c.status)}" data-action="status">${statusLabels[safeStatus(c.status)]}</button>
         </div>
         <div class="comment-actions">
@@ -383,6 +382,44 @@ function finishEdit(id) {
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// ─── Agent Execution ───
+async function runAgent(role) {
+  const contextEl = document.getElementById(role + '-context');
+  const loadingEl = document.getElementById(role + '-loading');
+  const resultEl = document.getElementById(role + '-result');
+  const resultText = document.getElementById(role + '-result-text');
+  const runBtn = document.getElementById(role + '-run-btn');
+
+  loadingEl.classList.remove('hidden');
+  resultEl.classList.add('hidden');
+  runBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instruction: contextEl.value.trim() || '',
+        role: role,
+        pageImage: getPageImage(),
+        pageNumber: currentPage,
+        totalPages,
+        pdfName,
+        referenceText: document.getElementById('ref-text').value || ''
+      })
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'API error'); }
+    const data = await res.json();
+    resultText.value = data.text;
+    resultEl.classList.remove('hidden');
+  } catch (e) {
+    alert('エージェントエラー: ' + e.message);
+  } finally {
+    loadingEl.classList.add('hidden');
+    runBtn.disabled = false;
+  }
+}
 function escAttr(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
 function goToPage(p) {
@@ -564,15 +601,6 @@ function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el =
 
 // ─── Event Listeners ───
 document.addEventListener('DOMContentLoaded', () => {
-  // Load user name
-  userName = localStorage.getItem('pdfredline_username') || '';
-  const userInput = document.getElementById('user-name-input');
-  userInput.value = userName;
-  userInput.addEventListener('input', (e) => {
-    userName = e.target.value.trim();
-    localStorage.setItem('pdfredline_username', userName);
-  });
-
   // Show saved projects on landing
   renderProjectList();
 
@@ -651,9 +679,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('ai-accept-btn').addEventListener('click', () => {
     const text = document.getElementById('ai-result-text').value.trim();
     if (text) {
-      addComment(document.getElementById('ai-instruction').value.trim().substring(0, 50), text, 'ai');
+      addComment('AI補完', text, 'ai');
       document.getElementById('ai-result').classList.add('hidden');
       document.getElementById('ai-instruction').value = '';
+    }
+  });
+
+  // Designer agent
+  document.getElementById('designer-run-btn').addEventListener('click', () => runAgent('designer'));
+  document.getElementById('designer-retry-btn').addEventListener('click', () => runAgent('designer'));
+  document.getElementById('designer-accept-btn').addEventListener('click', () => {
+    const text = document.getElementById('designer-result-text').value.trim();
+    if (text) {
+      addComment('デザインレビュー', text, 'designer');
+      document.getElementById('designer-result').classList.add('hidden');
+    }
+  });
+
+  // Editor agent
+  document.getElementById('editor-run-btn').addEventListener('click', () => runAgent('editor'));
+  document.getElementById('editor-retry-btn').addEventListener('click', () => runAgent('editor'));
+  document.getElementById('editor-accept-btn').addEventListener('click', () => {
+    const text = document.getElementById('editor-result-text').value.trim();
+    if (text) {
+      addComment('編集レビュー', text, 'editor');
+      document.getElementById('editor-result').classList.add('hidden');
     }
   });
 
