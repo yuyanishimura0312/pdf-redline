@@ -18,8 +18,113 @@ function storageKey() { return 'pdfredline_' + pdfName; }
 
 function saveState() {
   const data = { pdfName, referenceText, comments, updatedAt: new Date().toISOString() };
-  try { localStorage.setItem(storageKey(), JSON.stringify(data)); } catch (e) {}
+  try {
+    localStorage.setItem(storageKey(), JSON.stringify(data));
+    // Update project index
+    const index = getProjectIndex();
+    index[storageKey()] = { pdfName, commentCount: comments.length, updatedAt: data.updatedAt };
+    localStorage.setItem('pdfredline_index', JSON.stringify(index));
+  } catch (e) {}
   updateCommentCount();
+}
+
+function getProjectIndex() {
+  try {
+    return JSON.parse(localStorage.getItem('pdfredline_index') || '{}');
+  } catch (e) { return {}; }
+}
+
+function renderProjectList() {
+  const index = getProjectIndex();
+  const keys = Object.keys(index);
+  const section = document.getElementById('recent-projects');
+  const list = document.getElementById('project-list');
+
+  if (keys.length === 0) { section.classList.add('hidden'); return; }
+
+  section.classList.remove('hidden');
+  // Sort by updatedAt descending
+  keys.sort((a, b) => (index[b].updatedAt || '').localeCompare(index[a].updatedAt || ''));
+
+  list.innerHTML = keys.map(key => {
+    const p = index[key];
+    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ja-JP') : '';
+    return `
+      <div class="project-item" onclick="openProject('${key}')">
+        <div>
+          <div class="project-name">${esc(p.pdfName)}</div>
+          <div class="project-meta">${p.commentCount} 件のコメント | ${date}</div>
+        </div>
+        <button class="project-delete" onclick="event.stopPropagation(); deleteProject('${key}')" title="削除">&times;</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function openProject(key) {
+  try {
+    const data = JSON.parse(localStorage.getItem(key));
+    if (data) {
+      pdfName = data.pdfName || '';
+      comments = data.comments || [];
+      referenceText = data.referenceText || '';
+
+      document.getElementById('upload-screen').classList.remove('active');
+      document.getElementById('app-screen').classList.add('active');
+      document.getElementById('pdf-name-display').textContent = pdfName + ' (PDFを読み込んでください)';
+      document.getElementById('ref-text').value = referenceText;
+      document.getElementById('comment-filter').value = 'all';
+      renderComments();
+      updateCommentCount();
+
+      // Show message to load PDF
+      const container = document.getElementById('pdf-container');
+      container.innerHTML = `
+        <canvas id="pdf-render-canvas" style="display:none"></canvas>
+        <img id="pdf-image" alt="PDF page" style="display:none">
+        <div style="text-align:center;padding:60px 20px;color:#9a918a">
+          <p style="margin-bottom:12px;font-size:14px">${esc(pdfName)} のコメントを読み込みました (${comments.length} 件)</p>
+          <p style="margin-bottom:16px">PDFファイルを読み込むとページ画像が表示されます</p>
+          <input type="file" id="reopen-file-input" accept=".pdf" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('reopen-file-input').click()">PDFを選択</button>
+        </div>
+        <div id="pdf-loading" class="hidden">読み込み中...</div>
+      `;
+      document.getElementById('reopen-file-input').addEventListener('change', (e) => {
+        if (e.target.files[0]) reopenPDF(e.target.files[0]);
+      });
+    }
+  } catch (e) { console.warn('Failed to open project:', e); }
+}
+
+async function reopenPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+    cMapPacked: true
+  }).promise;
+  totalPages = pdfDoc.numPages;
+  document.getElementById('page-jump').max = totalPages;
+  document.getElementById('pdf-name-display').textContent = pdfName;
+
+  // Restore viewer
+  const container = document.getElementById('pdf-container');
+  container.innerHTML = '<canvas id="pdf-render-canvas" style="display:none"></canvas><img id="pdf-image" alt="PDF page"><div id="pdf-loading" class="hidden">読み込み中...</div>';
+
+  currentPage = 1;
+  renderPage(currentPage);
+  document.getElementById('comment-filter').value = 'page';
+  renderComments();
+}
+
+function deleteProject(key) {
+  if (!confirm('この案件を削除しますか？')) return;
+  localStorage.removeItem(key);
+  const index = getProjectIndex();
+  delete index[key];
+  localStorage.setItem('pdfredline_index', JSON.stringify(index));
+  renderProjectList();
 }
 
 function loadState() {
@@ -188,7 +293,6 @@ function renderComments() {
   list.innerHTML = filtered.map(c => `
     <div class="comment-card ${c.status === 'done' ? 'status-done' : ''}" data-id="${c.id}">
       <div class="comment-card-header">
-        <span class="comment-label">${esc(c.label)}</span>
         <span class="comment-page" onclick="goToPage(${c.page})">p.${c.page}</span>
       </div>
       <div class="comment-body">${esc(c.revised)}</div>
@@ -215,7 +319,6 @@ function startEdit(id) {
   card.classList.add('editing');
   const body = card.querySelector('.comment-body');
   body.innerHTML = `
-    <input type="text" class="edit-textarea" style="min-height:auto;margin-bottom:3px" value="${escAttr(c.label)}" id="edit-label-${id}">
     <textarea class="edit-textarea" id="edit-text-${id}">${esc(c.revised)}</textarea>
     <div class="edit-actions">
       <button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="finishEdit('${id}')">保存</button>
@@ -225,10 +328,7 @@ function startEdit(id) {
 }
 
 function finishEdit(id) {
-  updateComment(id, {
-    label: document.getElementById('edit-label-' + id).value,
-    revised: document.getElementById('edit-text-' + id).value
-  });
+  updateComment(id, { revised: document.getElementById('edit-text-' + id).value });
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -401,6 +501,9 @@ function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el =
 
 // ─── Event Listeners ───
 document.addEventListener('DOMContentLoaded', () => {
+  // Show saved projects on landing
+  renderProjectList();
+
   // File input
   document.getElementById('file-input').addEventListener('change', (e) => {
     if (e.target.files[0]) loadPDF(e.target.files[0]);
@@ -446,11 +549,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Add comment
   document.getElementById('add-comment-btn').addEventListener('click', () => {
-    const label = document.getElementById('comment-label').value.trim();
     const text = document.getElementById('comment-text').value.trim();
     if (!text && !attachedImage) { alert('コメントまたは画像を入力してください'); return; }
-    addComment(label, text, 'manual', attachedImage);
-    document.getElementById('comment-label').value = '';
+    addComment('p.' + currentPage, text, 'manual', attachedImage);
     document.getElementById('comment-text').value = '';
     removeAttachedImage();
   });

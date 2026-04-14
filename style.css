@@ -93,6 +93,22 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .feature-card strong { font-size: 13px; color: var(--text); display: block; margin-bottom: 2px; }
 .feature-card p { font-size: 12px; color: var(--text2); line-height: 1.4; }
 
+/* Recent projects */
+.recent-section { margin-top: 32px; }
+.recent-section.hidden { display: none; }
+.recent-section h2 { font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+.project-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--surface); border-radius: 8px;
+  box-shadow: var(--shadow); margin-bottom: 8px; cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.project-item:hover { box-shadow: var(--shadow-lg); }
+.project-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.project-meta { font-size: 11px; color: var(--text3); }
+.project-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 4px; }
+.project-delete:hover { color: var(--red); }
+
 /* ─── App Header ─── */
 #app-screen { flex-direction: column; height: 100vh; }
 #app-header {
