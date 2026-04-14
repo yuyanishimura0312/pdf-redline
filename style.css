@@ -231,10 +231,9 @@ body {
 }
 
 #pdf-canvas {
-  max-width: 100%;
-  height: auto;
   box-shadow: var(--shadow-md);
   background: #fff;
+  display: block;
 }
 
 #pdf-loading {

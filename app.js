@@ -83,16 +83,21 @@ async function renderPage(num) {
 
   try {
     const page = await pdfDoc.getPage(num);
-    // Scale to fit container width
     const container = document.getElementById('pdf-container');
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    // Fill container width — allow vertical scroll for tall pages
-    const scale = Math.min(containerWidth / viewport.width, 3);
-    const scaledViewport = page.getViewport({ scale });
+    // CSS pixel scale to fill container width
+    const cssScale = containerWidth / viewport.width;
+    // Render at higher resolution for Retina displays
+    const dpr = window.devicePixelRatio || 1;
+    const renderScale = cssScale * dpr;
+    const scaledViewport = page.getViewport({ scale: renderScale });
 
     canvas.width = scaledViewport.width;
     canvas.height = scaledViewport.height;
+    // Set CSS display size to fill container
+    canvas.style.width = containerWidth + 'px';
+    canvas.style.height = (containerWidth * viewport.height / viewport.width) + 'px';
 
     renderTask = page.render({ canvasContext: ctx, viewport: scaledViewport });
     await renderTask.promise;
@@ -512,11 +517,15 @@ async function renderPageDynamic(num) {
     const container = document.getElementById('pdf-container');
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(containerWidth / viewport.width, 3);
-    const scaledViewport = page.getViewport({ scale });
+    const dpr = window.devicePixelRatio || 1;
+    const cssScale = containerWidth / viewport.width;
+    const renderScale = cssScale * dpr;
+    const scaledViewport = page.getViewport({ scale: renderScale });
 
     c.width = scaledViewport.width;
     c.height = scaledViewport.height;
+    c.style.width = containerWidth + 'px';
+    c.style.height = (containerWidth * viewport.height / viewport.width) + 'px';
 
     await page.render({ canvasContext: cx, viewport: scaledViewport }).promise;
   } catch (e) {
