@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Redline</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23111'/><text x='50%25' y='55%25' text-anchor='middle' dominant-baseline='central' fill='white' font-size='20' font-family='Georgia'>e</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Upload Screen -->
+  <div id="upload-screen" class="screen active">
+    <div class="upload-area" id="drop-zone">
+      <h1>PDF Redline</h1>
+      <p>PDFファイルをドラッグ&ドロップ、またはクリックして選択</p>
+      <input type="file" id="file-input" accept=".pdf" hidden>
+      <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">ファイルを選択</button>
+      <div class="upload-sub">
+        <button class="btn btn-secondary" id="import-btn">JSONインポート</button>
+        <input type="file" id="import-input" accept=".json" hidden>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Screen -->
+  <div id="app-screen" class="screen">
+    <!-- Header -->
+    <header id="app-header">
+      <div class="header-left">
+        <span class="pdf-name" id="pdf-name-display"></span>
+        <span class="comment-count" id="comment-count">0 件のコメント</span>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-icon" id="ref-toggle" title="参考情報">Ref</button>
+        <button class="btn btn-icon" id="export-btn" title="エクスポート">Export</button>
+        <button class="btn btn-icon" id="report-btn" title="レポート出力">Report</button>
+        <button class="btn btn-icon" id="new-pdf-btn" title="別のPDF">New</button>
+      </div>
+    </header>
+
+    <!-- Reference Panel (collapsible) -->
+    <div id="ref-panel" class="ref-panel hidden">
+      <div class="ref-header">
+        <span>参考情報（AI補完に使用）</span>
+        <div>
+          <button class="btn btn-small" id="ref-file-btn">ファイル読込</button>
+          <input type="file" id="ref-file-input" accept=".txt,.md,.csv" hidden>
+          <button class="btn btn-small" id="ref-clear-btn">クリア</button>
+        </div>
+      </div>
+      <textarea id="ref-text" placeholder="参考情報をここに貼り付け、またはファイルを読み込んでください..."></textarea>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+      <!-- PDF Viewer -->
+      <div id="pdf-viewer">
+        <div id="pdf-container">
+          <canvas id="pdf-canvas"></canvas>
+          <div id="pdf-loading" class="hidden">読み込み中...</div>
+        </div>
+        <div id="pdf-nav">
+          <button class="btn btn-nav" id="prev-btn" disabled>&lt; 前</button>
+          <span id="page-info">- / -</span>
+          <button class="btn btn-nav" id="next-btn" disabled>次 &gt;</button>
+          <input type="number" id="page-jump" min="1" placeholder="#" title="ページ番号を入力してジャンプ">
+        </div>
+      </div>
+
+      <!-- Comment Panel -->
+      <div id="comment-panel">
+        <div id="comment-input-area">
+          <div class="mode-tabs">
+            <button class="tab active" data-mode="manual">直接記載</button>
+            <button class="tab" data-mode="ai">AI補完</button>
+          </div>
+
+          <!-- Manual Mode -->
+          <div id="manual-mode" class="mode-content active">
+            <input type="text" id="comment-label" placeholder="見出し（例: 第2章 冒頭の修正）">
+            <textarea id="comment-text" placeholder="修正内容を記載..."></textarea>
+            <button class="btn btn-primary" id="add-comment-btn">コメント追加</button>
+          </div>
+
+          <!-- AI Mode -->
+          <div id="ai-mode" class="mode-content">
+            <textarea id="ai-instruction" placeholder="AIへの指示（例: この段落をより簡潔に書き直してください）"></textarea>
+            <button class="btn btn-ai" id="ai-generate-btn">AI補完を実行</button>
+            <div id="ai-result" class="hidden">
+              <div class="ai-result-header">AI生成結果:</div>
+              <textarea id="ai-result-text" placeholder="AIの生成結果がここに表示されます"></textarea>
+              <div class="ai-actions">
+                <button class="btn btn-primary" id="ai-accept-btn">コメントとして保存</button>
+                <button class="btn btn-secondary" id="ai-retry-btn">再生成</button>
+              </div>
+            </div>
+            <div id="ai-loading" class="hidden">
+              <div class="spinner"></div>
+              <span>AI処理中...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment List -->
+        <div id="comment-list-area">
+          <div class="comment-list-header">
+            <span>このページのコメント</span>
+            <select id="comment-filter">
+              <option value="page">このページ</option>
+              <option value="all">全ページ</option>
+            </select>
+          </div>
+          <div id="comment-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
