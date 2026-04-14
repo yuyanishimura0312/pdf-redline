@@ -12,7 +12,7 @@ let userName = '';
 
 function getRenderCanvas() { return document.getElementById('pdf-render-canvas'); }
 function getPdfImage() { return document.getElementById('pdf-image'); }
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 9); }
+function generateId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2, 9); }
 
 // ─── Storage ───
 function storageKey() { return 'pdfredline_' + pdfName; }
@@ -118,7 +118,8 @@ async function reopenPDF(file) {
   pdfDoc = await pdfjsLib.getDocument({
     data: arrayBuffer,
     cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-    cMapPacked: true
+    cMapPacked: true,
+    isEvalSupported: false
   }).promise;
   totalPages = pdfDoc.numPages;
   document.getElementById('page-jump').max = totalPages;
@@ -322,17 +323,21 @@ function renderComments() {
   }
 
   const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
+  const safeMode = (m) => m === 'ai' ? 'ai' : 'manual';
+  const safeStatus = (s) => ['open', 'in_progress', 'done'].includes(s) ? s : 'open';
+  const safeImage = (img) => img && typeof img === 'string' && img.startsWith('data:image/') ? img : '';
+
   list.innerHTML = filtered.map(c => `
-    <div class="comment-card ${c.status === 'done' ? 'status-done' : ''}" data-id="${esc(c.id)}">
+    <div class="comment-card ${safeStatus(c.status) === 'done' ? 'status-done' : ''}" data-id="${esc(c.id)}">
       <div class="comment-card-header">
-        <span><span class="comment-page" data-action="goto" data-page="${c.page}">p.${c.page}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
+        <span><span class="comment-page" data-action="goto" data-page="${parseInt(c.page) || 0}">p.${parseInt(c.page) || '?'}</span>${c.user ? '<span class="comment-user">' + esc(c.user) + '</span>' : ''}</span>
       </div>
       <div class="comment-body">${esc(c.revised)}</div>
-      ${c.image ? '<div class="comment-image"><img src="' + c.image + '" alt="添付"></div>' : ''}
+      ${safeImage(c.image) ? '<div class="comment-image"><img src="' + safeImage(c.image) + '" alt="添付"></div>' : ''}
       <div class="comment-meta">
         <div style="display:flex;align-items:center;gap:4px">
-          <span class="comment-mode ${c.mode}">${c.mode === 'ai' ? 'AI' : '手動'}</span>
-          <button class="comment-status" data-status="${c.status}" data-action="status">${statusLabels[c.status]}</button>
+          <span class="comment-mode ${safeMode(c.mode)}">${safeMode(c.mode) === 'ai' ? 'AI' : '手動'}</span>
+          <button class="comment-status" data-status="${safeStatus(c.status)}" data-action="status">${statusLabels[safeStatus(c.status)]}</button>
         </div>
         <div class="comment-actions">
           <button class="btn-danger" data-action="edit">編集</button>

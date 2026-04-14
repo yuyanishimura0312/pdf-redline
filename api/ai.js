@@ -1,7 +1,28 @@
+// Simple in-memory rate limiter (per serverless instance)
+const rateLimit = {};
+const RATE_WINDOW = 60000; // 1 minute
+const RATE_MAX = 10; // max requests per window per IP
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  if (!rateLimit[ip] || now - rateLimit[ip].start > RATE_WINDOW) {
+    rateLimit[ip] = { start: now, count: 1 };
+    return true;
+  }
+  rateLimit[ip].count++;
+  return rateLimit[ip].count <= RATE_MAX;
+}
+
 // Vercel Serverless Function: AI completion via Claude API
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Rate limiting
+  const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({ error: 'リクエストが多すぎます。1分後に再試行してください。' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -87,6 +108,7 @@ ${instruction}`;
     return res.status(200).json({ text });
   } catch (e) {
     console.error('AI handler error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('AI handler error:', e.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
