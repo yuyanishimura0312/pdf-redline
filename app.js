@@ -90,18 +90,21 @@ async function renderPage(num) {
     // CSS pixel scale: fit to width, then apply user zoom
     const fitScale = containerWidth / viewport.width;
     const cssScale = fitScale * zoomLevel;
-    const displayWidth = viewport.width * cssScale;
-    const displayHeight = viewport.height * cssScale;
+    const cssViewport = page.getViewport({ scale: cssScale });
+    const displayWidth = Math.floor(cssViewport.width);
+    const displayHeight = Math.floor(cssViewport.height);
     // Render at higher resolution for Retina displays
     const dpr = window.devicePixelRatio || 1;
-    const scaledViewport = page.getViewport({ scale: cssScale * dpr });
 
-    canvas.width = scaledViewport.width;
-    canvas.height = scaledViewport.height;
+    canvas.width = Math.floor(displayWidth * dpr);
+    canvas.height = Math.floor(displayHeight * dpr);
     canvas.style.width = displayWidth + 'px';
     canvas.style.height = displayHeight + 'px';
 
-    renderTask = page.render({ canvasContext: ctx, viewport: scaledViewport });
+    // Scale the context BEFORE rendering — critical for sharp text
+    ctx.scale(dpr, dpr);
+
+    renderTask = page.render({ canvasContext: ctx, viewport: cssViewport });
     await renderTask.promise;
     renderTask = null;
     updateZoomDisplay();
@@ -544,16 +547,19 @@ async function renderPageDynamic(num) {
     const dpr = window.devicePixelRatio || 1;
     const fitScale = containerWidth / viewport.width;
     const cssScale = fitScale * zoomLevel;
-    const displayWidth = viewport.width * cssScale;
-    const displayHeight = viewport.height * cssScale;
-    const scaledViewport = page.getViewport({ scale: cssScale * dpr });
+    const cssViewport = page.getViewport({ scale: cssScale });
+    const displayWidth = Math.floor(cssViewport.width);
+    const displayHeight = Math.floor(cssViewport.height);
 
-    c.width = scaledViewport.width;
-    c.height = scaledViewport.height;
+    c.width = Math.floor(displayWidth * dpr);
+    c.height = Math.floor(displayHeight * dpr);
     c.style.width = displayWidth + 'px';
     c.style.height = displayHeight + 'px';
 
-    await page.render({ canvasContext: cx, viewport: scaledViewport }).promise;
+    const cx2 = c.getContext('2d');
+    cx2.scale(dpr, dpr);
+
+    await page.render({ canvasContext: cx2, viewport: cssViewport }).promise;
   } catch (e) {
     console.error('Render error:', e);
   }
