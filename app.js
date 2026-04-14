@@ -98,9 +98,9 @@ async function renderPage(num) {
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
 
-    // Render at 1:1 scale, apply zoom
+    // Render at 1.5x for sharper text
     const fitScale = containerWidth / viewport.width;
-    const renderScale = fitScale * zoomLevel;
+    const renderScale = fitScale * 1.5 * zoomLevel;
     const renderViewport = page.getViewport({ scale: renderScale });
 
     renderCanvas.width = renderViewport.width;
