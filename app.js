@@ -61,7 +61,7 @@ async function loadPDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   pdfDoc = await pdfjsLib.getDocument({
     data: arrayBuffer,
-    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
     cMapPacked: true
   }).promise;
   totalPages = pdfDoc.numPages;
@@ -98,9 +98,8 @@ async function renderPage(num) {
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
 
-    // Render at 4x base resolution for crisp text on Retina displays
-    const dpr = window.devicePixelRatio || 1;
-    const renderScale = Math.max(dpr, 2) * 2 * zoomLevel;
+    // Render at 2x for crisp display, browser handles Retina via <img>
+    const renderScale = 2.0 * zoomLevel;
     const renderViewport = page.getViewport({ scale: renderScale });
 
     renderCanvas.width = renderViewport.width;
@@ -531,7 +530,7 @@ async function loadPDFIntoViewer(file) {
   const arrayBuffer = await file.arrayBuffer();
   pdfDoc = await pdfjsLib.getDocument({
     data: arrayBuffer,
-    cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
     cMapPacked: true
   }).promise;
   totalPages = pdfDoc.numPages;
