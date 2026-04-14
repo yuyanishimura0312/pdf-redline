@@ -487,165 +487,141 @@ async function generatePdfReport() {
     return;
   }
 
-  // Show progress modal
+  // Show progress
   closeModal();
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal">
       <h2>PDFレポート生成中...</h2>
-      <p id="pdf-progress">準備中...</p>
-      <div style="margin-top:12px;height:4px;background:var(--color-border);border-radius:2px">
-        <div id="pdf-progress-bar" style="height:100%;width:0%;background:var(--color-brand);border-radius:2px;transition:width 0.3s"></div>
-      </div>
+      <p id="pdf-progress">ページ画像を生成中...</p>
     </div>
   `;
   document.body.appendChild(overlay);
-
   const progressEl = document.getElementById('pdf-progress');
-  const progressBar = document.getElementById('pdf-progress-bar');
 
-  try {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = 210;
-    const pageH = 297;
-    const margin = 12;
-    const contentW = pageW - margin * 2;
-    const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
+  const statusLabels = { open: '未対応', in_progress: '対応中', done: '完了' };
 
-    // Group comments by page
-    const grouped = {};
-    for (const c of comments) {
-      if (!grouped[c.page]) grouped[c.page] = [];
-      grouped[c.page].push(c);
-    }
-    const pageNumbers = Object.keys(grouped).map(Number).sort((a, b) => a - b);
-
-    // Title page
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(20);
-    pdf.text('PDF Redline Report', pageW / 2, 40, { align: 'center' });
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(pdfName, pageW / 2, 55, { align: 'center' });
-    pdf.text(new Date().toLocaleDateString('ja-JP') + '  ' + comments.length + ' comments', pageW / 2, 65, { align: 'center' });
-
-    // Render each commented page as thumbnail + comments, 4 per sheet
-    const slotsPerSheet = 4;
-    // Each slot: half width, quarter height (2 cols x 2 rows)
-    const slotW = (contentW - 4) / 2; // 4mm gap between columns
-    const slotH = (pageH - margin * 2 - 8) / 2; // 8mm gap between rows
-    const thumbH = slotH * 0.55; // 55% for thumbnail, 45% for comments
-    const commentAreaH = slotH - thumbH - 2;
-
-    let slotIndex = 0;
-
-    // Hidden canvas for rendering thumbnails
-    const thumbCanvas = document.createElement('canvas');
-    const thumbCtx = thumbCanvas.getContext('2d');
-
-    for (let i = 0; i < pageNumbers.length; i++) {
-      const pgNum = pageNumbers[i];
-      progressEl.textContent = 'ページ ' + pgNum + ' を処理中... (' + (i + 1) + '/' + pageNumbers.length + ')';
-      progressBar.style.width = Math.round((i / pageNumbers.length) * 100) + '%';
-
-      // New PDF page when needed
-      if (slotIndex === 0 || slotIndex >= slotsPerSheet) {
-        if (i > 0 || slotIndex >= slotsPerSheet) pdf.addPage();
-        slotIndex = 0;
-      }
-
-      // Calculate slot position
-      const col = slotIndex % 2;
-      const row = Math.floor(slotIndex / 2);
-      const slotX = margin + col * (slotW + 4);
-      const slotY = margin + row * (slotH + 4);
-
-      // Render page thumbnail
-      try {
-        const page = await pdfDoc.getPage(pgNum);
-        const vp = page.getViewport({ scale: 1 });
-        const scale = Math.min((slotW * 3) / vp.width, (thumbH * 3) / vp.height);
-        const scaledVp = page.getViewport({ scale });
-
-        thumbCanvas.width = scaledVp.width;
-        thumbCanvas.height = scaledVp.height;
-        thumbCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
-        await page.render({ canvasContext: thumbCtx, viewport: scaledVp }).promise;
-
-        const imgData = thumbCanvas.toDataURL('image/jpeg', 0.85);
-        const imgW = slotW;
-        const imgH = (scaledVp.height / scaledVp.width) * imgW;
-        const finalImgH = Math.min(imgH, thumbH);
-        const finalImgW = (finalImgH / imgH) * imgW;
-
-        // Draw border
-        pdf.setDrawColor(200);
-        pdf.setLineWidth(0.3);
-        pdf.rect(slotX, slotY, slotW, slotH);
-
-        // Draw thumbnail
-        pdf.addImage(imgData, 'JPEG', slotX + (slotW - finalImgW) / 2, slotY + 1, finalImgW, finalImgH);
-
-        // Page number label
-        pdf.setFontSize(7);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(120, 60, 40);
-        pdf.text('p.' + pgNum, slotX + 2, slotY + thumbH + 5);
-        pdf.setTextColor(0);
-      } catch (e) {
-        console.warn('Failed to render page', pgNum, e);
-      }
-
-      // Draw comments below thumbnail
-      const cmts = grouped[pgNum];
-      let commentY = slotY + thumbH + 8;
-      pdf.setFontSize(6);
-      pdf.setFont('helvetica', 'normal');
-
-      for (const c of cmts) {
-        if (commentY > slotY + slotH - 3) break; // overflow guard
-
-        // Label
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(6.5);
-        const labelText = c.label || 'Comment';
-        const statusText = ' [' + (statusLabels[c.status] || c.status) + ']';
-        pdf.text(labelText.substring(0, 40) + statusText, slotX + 2, commentY, { maxWidth: slotW - 4 });
-        commentY += 3;
-
-        // Body text
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(5.5);
-        const lines = pdf.splitTextToSize(c.revised || '', slotW - 4);
-        const maxLines = Math.floor((slotY + slotH - commentY - 2) / 2.5);
-        const displayLines = lines.slice(0, Math.min(lines.length, maxLines));
-        for (const line of displayLines) {
-          pdf.text(line, slotX + 2, commentY);
-          commentY += 2.5;
-        }
-        if (lines.length > maxLines) {
-          pdf.text('...', slotX + 2, commentY);
-          commentY += 2.5;
-        }
-        commentY += 1.5;
-      }
-
-      slotIndex++;
-    }
-
-    progressBar.style.width = '100%';
-    progressEl.textContent = '完了';
-
-    // Save
-    pdf.save(pdfName.replace('.pdf', '') + '_redline_report.pdf');
-    closeModal();
-  } catch (e) {
-    console.error('PDF report error:', e);
-    alert('PDFレポート生成エラー: ' + e.message);
-    closeModal();
+  // Group comments by page
+  const grouped = {};
+  for (const c of comments) {
+    if (!grouped[c.page]) grouped[c.page] = [];
+    grouped[c.page].push(c);
   }
+  const pageNumbers = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+  // Render thumbnails for commented pages
+  const thumbCanvas = document.createElement('canvas');
+  const thumbCtx = thumbCanvas.getContext('2d');
+  const thumbnails = {};
+
+  for (let i = 0; i < pageNumbers.length; i++) {
+    const pgNum = pageNumbers[i];
+    progressEl.textContent = 'ページ ' + pgNum + ' を生成中... (' + (i + 1) + '/' + pageNumbers.length + ')';
+
+    try {
+      const page = await pdfDoc.getPage(pgNum);
+      const vp = page.getViewport({ scale: 1 });
+      const scale = 1.5; // render at 1.5x for decent quality thumbnails
+      const scaledVp = page.getViewport({ scale });
+
+      thumbCanvas.width = scaledVp.width;
+      thumbCanvas.height = scaledVp.height;
+      thumbCtx.fillStyle = '#fff';
+      thumbCtx.fillRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+      await page.render({ canvasContext: thumbCtx, viewport: scaledVp }).promise;
+
+      thumbnails[pgNum] = thumbCanvas.toDataURL('image/jpeg', 0.8);
+    } catch (e) {
+      console.warn('Failed to render page', pgNum, e);
+    }
+  }
+
+  // Build HTML report
+  let cardsHtml = '';
+  for (let i = 0; i < pageNumbers.length; i++) {
+    const pgNum = pageNumbers[i];
+    const cmts = grouped[pgNum];
+    const imgSrc = thumbnails[pgNum] || '';
+
+    let commentsHtml = cmts.map(c => `
+      <div class="r-comment">
+        <div class="r-comment-label">${escHtml(c.label || 'Comment')} <span class="r-status">[${statusLabels[c.status] || c.status}]</span></div>
+        <div class="r-comment-body">${escHtml(c.revised || '')}</div>
+      </div>
+    `).join('');
+
+    cardsHtml += `
+      <div class="r-card">
+        <div class="r-thumb"><img src="${imgSrc}" alt="p.${pgNum}"></div>
+        <div class="r-info">
+          <div class="r-page">p.${pgNum}</div>
+          ${commentsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  const reportHtml = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Redline Report - ${escHtml(pdfName)}</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif; color: #1a1a1a; font-size: 10px; line-height: 1.4; }
+
+  .r-header { text-align: center; padding: 10mm 0 8mm; border-bottom: 1px solid #ccc; margin-bottom: 6mm; }
+  .r-header h1 { font-size: 18px; color: #783c28; font-weight: 600; margin-bottom: 4px; }
+  .r-header p { font-size: 11px; color: #666; }
+
+  .r-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+
+  .r-card { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; break-inside: avoid; display: flex; flex-direction: column; }
+  .r-thumb { background: #f0f0f0; display: flex; align-items: center; justify-content: center; padding: 3mm; }
+  .r-thumb img { max-width: 100%; max-height: 50mm; height: auto; display: block; }
+
+  .r-info { padding: 2mm 3mm 3mm; flex: 1; }
+  .r-page { font-size: 9px; font-weight: 700; color: #783c28; margin-bottom: 2mm; }
+
+  .r-comment { margin-bottom: 2mm; }
+  .r-comment-label { font-size: 9px; font-weight: 600; color: #333; }
+  .r-status { font-weight: 400; color: #999; font-size: 8px; }
+  .r-comment-body { font-size: 9px; color: #444; white-space: pre-wrap; word-break: break-word; margin-top: 0.5mm; }
+
+  @media print {
+    .r-no-print { display: none; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  .r-actions { text-align: center; padding: 16px; }
+  .r-actions button { padding: 10px 32px; font-size: 14px; background: #783c28; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  .r-actions button:hover { background: #4a2418; }
+</style>
+</head>
+<body>
+  <div class="r-no-print r-actions">
+    <button onclick="window.print()">PDFとして保存</button>
+  </div>
+  <div class="r-header">
+    <h1>PDF Redline Report</h1>
+    <p>${escHtml(pdfName)} | ${new Date().toLocaleDateString('ja-JP')} | ${comments.length} 件のコメント</p>
+  </div>
+  <div class="r-grid">
+    ${cardsHtml}
+  </div>
+</body>
+</html>`;
+
+  // Open in new window
+  closeModal();
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('ポップアップがブロックされました。ポップアップを許可してください。');
+    return;
+  }
+  win.document.write(reportHtml);
+  win.document.close();
 }
 
 // ─── Load shared data from URL ───
