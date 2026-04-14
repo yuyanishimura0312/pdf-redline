@@ -31,8 +31,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .btn-primary:hover { background: var(--brand-dark); }
 .btn-secondary { background: var(--bg-alt); color: var(--text); padding: 8px 16px; border: 1px solid var(--border); }
 .btn-secondary:hover { background: var(--border); }
-.btn-ai { background: var(--accent); color: #fff; padding: 8px 20px; width: 100%; }
-.btn-ai:hover { background: var(--brand-light); }
+.btn-ai { background: var(--brand); color: #fff; padding: 8px 20px; width: 100%; }
+.btn-ai:hover { background: var(--brand-dark); }
 .btn-icon { background: transparent; color: var(--text2); padding: 6px 12px; border: 1px solid var(--border); font-size: 12px; font-weight: 500; }
 .btn-icon:hover { background: var(--bg-alt); color: var(--brand); }
 .btn-small { background: transparent; color: var(--text2); padding: 3px 8px; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-family: var(--font); }
@@ -201,19 +201,16 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .agent-desc strong { font-size: 13px; color: var(--text); display: block; margin-bottom: 2px; }
 .agent-desc p { font-size: 12px; color: var(--text2); margin: 0; line-height: 1.4; }
 
-.btn-agent { width: 100%; padding: 8px 20px; color: #fff; }
-.btn-designer { background: #2c6e49; }
-.btn-designer:hover { background: #1e4d34; }
-.btn-editor { background: #1a5276; }
-.btn-editor:hover { background: #123a54; }
+.btn-agent { width: 100%; padding: 8px 20px; color: #fff; background: var(--brand); }
+.btn-agent:hover { background: var(--brand-dark); }
 
 .agent-result-header { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
-.designer-color { color: #2c6e49; }
-.editor-color { color: #1a5276; }
+.designer-color { color: var(--brand); }
+.editor-color { color: var(--brand-light); }
 
 /* Comment agent badges */
-.comment-mode.designer { background: #e8f5e9; color: #2c6e49; }
-.comment-mode.editor { background: #e3f2fd; color: #1a5276; }
+.comment-mode.designer { background: var(--accent-subtle); color: var(--brand-dark); }
+.comment-mode.editor { background: var(--accent-subtle); color: var(--brand-dark); }
 
 /* AI */
 #ai-result { margin-top: 8px; padding: 8px; background: var(--green-bg); border-radius: 6px; border: 1px solid #b8e6cc; }
