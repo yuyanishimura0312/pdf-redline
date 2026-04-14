@@ -98,8 +98,9 @@ async function renderPage(num) {
     const containerWidth = container.clientWidth - 24;
     const viewport = page.getViewport({ scale: 1 });
 
-    // Render at 2x for crisp display, browser handles Retina via <img>
-    const renderScale = 2.0 * zoomLevel;
+    // Render at 1:1 scale, apply zoom
+    const fitScale = containerWidth / viewport.width;
+    const renderScale = fitScale * zoomLevel;
     const renderViewport = page.getViewport({ scale: renderScale });
 
     renderCanvas.width = renderViewport.width;
@@ -113,9 +114,8 @@ async function renderPage(num) {
     const dataUrl = renderCanvas.toDataURL('image/png');
     pdfImage.src = dataUrl;
 
-    // Set display size based on zoom
-    const fitScale = containerWidth / viewport.width;
-    const displayWidth = Math.floor(viewport.width * fitScale * zoomLevel);
+    // Set display size (same as render size at 1:1)
+    const displayWidth = Math.floor(renderViewport.width);
     pdfImage.style.width = displayWidth + 'px';
     pdfImage.style.height = 'auto';
     pdfImage.style.opacity = '1';
