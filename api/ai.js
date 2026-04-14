@@ -64,8 +64,13 @@ ${instruction}`;
 
     if (!response.ok) {
       const errBody = await response.text();
-      console.error('Claude API error:', errBody);
-      return res.status(response.status).json({ error: 'Claude API error' });
+      console.error('Claude API error:', response.status, errBody);
+      let errMsg = 'Claude API error';
+      try {
+        const parsed = JSON.parse(errBody);
+        errMsg = parsed.error?.message || errMsg;
+      } catch (_) {}
+      return res.status(response.status).json({ error: errMsg });
     }
 
     const data = await response.json();

@@ -70,6 +70,7 @@ async function loadPDF(file) {
   currentPage = 1;
   renderPage(currentPage);
   renderComments();
+  updateCommentCount();
 }
 
 // ─── PDF Rendering ───
